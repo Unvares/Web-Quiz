@@ -7,7 +7,7 @@ export default class QuizResult extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ["username", "score"];
+    return ["username", "score", "status"];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -70,7 +70,9 @@ export default class QuizResult extends HTMLElement {
   getTemplate() {
     return `
       <div class="result">
-        <h2>Congratulations, ${this.username || "Guest"}!</h2>
+        <h2>${
+          this.status === "done" ? "Congratulations" : "Better luck next time"
+        }, ${this.username || "Guest"}!</h2>
         <p>Your score is: ${this.score || 0}</p>
         <div class="result__control-panel">
           <button class="result__button" id="tryAgainButton">Try Again</button>

@@ -17,40 +17,67 @@ export default class Quiz extends HTMLElement {
 
   render() {
     this.shadowRoot.innerHTML = this.getStyles();
-    let component;
-    switch (this.state.currentView) {
-      case "menu":
-        component = new QuizMenu();
-        component.addEventListener("start-quiz", (event) => {
-          this.state.username = event.detail.username;
-          this.state.currentView = "content";
-          this.render();
-        });
-        break;
-      case "content":
-        component = new QuizContent();
-        component.setAttribute("username", this.state.username);
-        component.addEventListener("quiz-completed", (event) => {
-          this.state.score = event.detail.score;
-          this.state.currentView = "result";
-          this.render();
-        });
-        break;
-      case "result":
-        component = new QuizResult();
-        component.setAttribute("username", this.state.username);
-        component.setAttribute("score", this.state.score);
-        component.addEventListener("restart-quiz", () => {
-          this.state.currentView = "content";
-          this.state.score = 0;
-          this.render();
-        });
-        break;
-    }
-    const container = document.createElement("div");
-    container.classList.add("quiz-container");
+    const component = this.getComponentForCurrentView();
+    const container = this.createContainer();
     container.appendChild(component);
     this.shadowRoot.appendChild(container);
+  }
+
+  getComponentForCurrentView() {
+    switch (this.state.currentView) {
+      case "menu":
+        return this.createMenuComponent();
+      case "content":
+        return this.createContentComponent();
+      case "done":
+        return this.createResultComponent("done");
+      case "failed":
+        return this.createResultComponent("failed");
+      default:
+        throw new Error("Invalid view state");
+    }
+  }
+
+  createMenuComponent() {
+    const menu = new QuizMenu();
+    menu.addEventListener("start-quiz", (event) => {
+      this.updateState({ username: event.detail.username, currentView: "content" });
+    });
+    return menu;
+  }
+
+  createContentComponent() {
+    const content = new QuizContent();
+    content.setAttribute("username", this.state.username);
+    content.addEventListener("finish-quiz", (event) => {
+      this.updateState({ score: event.detail.score, currentView: "done" });
+    });
+    content.addEventListener("fail-quiz", (event) => {
+      this.updateState({ score: event.detail.score, currentView: "failed" });
+    });
+    return content;
+  }
+
+  createResultComponent(status) {
+    const result = new QuizResult();
+    result.setAttribute("username", this.state.username);
+    result.setAttribute("score", this.state.score);
+    result.setAttribute("status", status);
+    result.addEventListener("restart-quiz", () => {
+      this.updateState({ currentView: "content", score: 0 });
+    });
+    return result;
+  }
+
+  updateState(newState) {
+    this.state = { ...this.state, ...newState };
+    this.render();
+  }
+
+  createContainer() {
+    const container = document.createElement("div");
+    container.classList.add("quiz-container");
+    return container;
   }
 
   getStyles() {

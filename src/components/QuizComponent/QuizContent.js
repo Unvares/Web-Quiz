@@ -1,44 +1,64 @@
 export default class QuizContent extends HTMLElement {
+  questionUrl = "https://courselab.lnu.se/quiz/question/1";
+  answerUrl = "https://courselab.lnu.se/quiz/answer/1";
   shadowRoot = this.attachShadow({ mode: "open" });
 
   constructor() {
     super();
-    this.currentQuestionIndex = 0;
-    this.selectedOptionId = null;
-    this.answered = false;
+    this.questionCount = 1;
+    this.inputFieldValue = "";
+    this.optionSelected = null;
+    this.isQuestionAnswered = false;
+    this.isQuizFinished = false;
     this.score = 0;
-    this.username = this.getAttribute("username");
-    this.questions = [
-      {
-        question: "What is 2 + 2?",
-        options: ["3", "4", "5", "6"],
-        answer: "4",
-      },
-      {
-        question: "What is the capital of France?",
-        options: ["Berlin", "Madrid", "Paris", "Rome"],
-        answer: "Paris",
-      },
-    ];
-    this.render();
+  }
+
+  static get observedAttributes() {
+    return ["username"];
+  }
+
+  connectedCallback() {
+    this.fetchQuestion();
+  }
+
+  async fetchQuestion() {
+    try {
+      const response = await fetch(this.questionUrl);
+      const questionObject = await response.json();
+      this.question = questionObject.question;
+      this.alternatives = questionObject.alternatives || null;
+      this.answerUrl = questionObject.nextURL;
+      this.render();
+    } catch (error) {
+      console.error("Failed to fetch question:", error);
+    }
   }
 
   render() {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
+    this.addEventListeners();
+  }
 
-    this.shadowRoot.addEventListener("change", (event) => {
-      const optionId = event.target.id;
-      this.selectedOptionId = parseInt(optionId.split("-")[1], 10);
-    });
-
-    if (this.answered) {
+  addEventListeners() {
+    if (this.isQuestionAnswered) {
       this.shadowRoot
         .getElementById("nextButton")
-        .addEventListener("click", () => this.nextQuestion());
+        .addEventListener("click", () => {
+          if (this.isQuizFinished) {
+            this.finishQuiz();
+          } else if (this.isAnswerCorrect) {
+            this.nextQuestion();
+          } else {
+            this.failQuiz();
+          }
+        });
     } else {
-      this.shadowRoot
-        .getElementById("submitButton")
-        .addEventListener("click", () => this.submitAnswer());
+      const submitButton = this.shadowRoot.getElementById("submitButton");
+      const submitHandler =
+        this.alternatives === null
+          ? this.submitTextAnswer.bind(this)
+          : this.submitMultipleChoiceAnswer.bind(this);
+      submitButton.addEventListener("click", submitHandler);
     }
   }
 
@@ -79,6 +99,19 @@ export default class QuizContent extends HTMLElement {
           color: #424242;
         }
 
+        .quiz__input-field {
+          padding: 12px;
+          border: 1px solid #e0e0e0;
+          border-radius: 4px;
+          font-size: 1rem;
+          transition: border-color 0.3s;
+        }
+
+        .quiz__input-field:focus {
+          border-color: #1976d2;
+          outline: none;
+        }
+
         .quiz__options {
           display: flex;
           flex-direction: column;
@@ -86,6 +119,7 @@ export default class QuizContent extends HTMLElement {
         }
 
         .quiz__option {
+          overflow-wrap: break-word;
           padding: 10px;
           border: 1px solid #ccc;
           border-radius: 4px;
@@ -94,12 +128,14 @@ export default class QuizContent extends HTMLElement {
           transition: background-color 0.3s;
         }
 
-        .quiz__option_correct {
+        .correct {
           background-color: #3dd119;
+          color: white;
         }
 
-        .quiz__option_incorrect {
+        .incorrect {
           background-color: #d12519;
+          color: white;
         }
 
         .quiz__option:not([disabled]):hover {
@@ -126,53 +162,85 @@ export default class QuizContent extends HTMLElement {
   }
 
   getTemplate() {
-    const currentQuestion = this.questions[this.currentQuestionIndex];
-    const optionsHtml = currentQuestion.options
-      .map(
-        (option, index) => `
-        <label
-          class="quiz__option ${this.getResultClass(index)}"
-          ${this.answered ? "disabled" : ""}
-        >
-          <input
-            type="radio"
-            name="option"
-            value="${option}"
-            id="option-${index}"
-            ${this.answered ? "disabled" : ""}
-            ${index === this.selectedOptionId ? "checked" : ""}
-          />
-          ${option}
-        </label>
-      `
-      )
-      .join("");
-
-    const buttonHtml = this.answered
-      ? `<button class="quiz__button" id="nextButton">Next Question</button>`
+    const answerHtml =
+      this.alternatives === null
+        ? this.getTextInputHtml()
+        : this.getOptionsHtml();
+    const buttonHtml = this.isQuestionAnswered
+      ? `<button class="quiz__button" id="nextButton">${
+          this.isQuizFinished
+            ? "Finish Quiz"
+            : this.isAnswerCorrect
+            ? "Next Question"
+            : "Finish Quiz"
+        }</button>`
       : `<button class="quiz__button" id="submitButton">Answer</button>`;
 
     return `
-      <h3 class="quiz__title">Question ${this.currentQuestionIndex + 1}</h3>
+      <h3 class="quiz__title">Question ${this.questionCount}</h3>
       <hr class="quiz__divider" />
-      <p class="quiz__question">${currentQuestion.question}</p>
-      <div class="quiz__options">
-        ${optionsHtml}
-      </div>
+      <p class="quiz__question">${this.question}</p>
+      ${answerHtml}
       ${buttonHtml}
     `;
   }
 
-  getResultClass(index) {
-    if (!this.answered || index !== this.selectedOptionId) {
-      return "";
-    }
-    return this.isAnswerCorrect
-      ? "quiz__option_correct"
-      : "quiz__option_incorrect";
+  getTextInputHtml() {
+    return `
+      <input
+        class="quiz__input-field ${this.getResultClass()}"
+        type="text"
+        name="answer"
+        placeholder="Type your answer here"
+        value="${this.inputFieldValue}"
+        ${this.isQuestionAnswered ? "disabled" : ""}
+      />
+    `;
   }
 
-  submitAnswer() {
+  getOptionsHtml() {
+    const optionsHtml = Object.entries(this.alternatives)
+      .map(
+        ([key, value]) => `
+        <label
+          class="quiz__option ${this.getResultClass(key)}"
+          ${this.isQuestionAnswered ? "disabled" : ""}
+        >
+          <input
+            type="radio"
+            name="option"
+            value="${value}"
+            id="${key}"
+            ${this.isQuestionAnswered ? "disabled" : ""}
+            ${key === this.optionSelected ? "checked" : ""}
+          />
+          ${value}
+        </label>
+      `
+      )
+      .join("");
+    return `<div class="quiz__options">${optionsHtml}</div>`;
+  }
+
+  getResultClass(key) {
+    if (
+      !this.isQuestionAnswered ||
+      (key !== this.optionSelected && this.alternatives)
+    ) {
+      return "";
+    }
+    return this.isAnswerCorrect ? "correct" : "incorrect";
+  }
+
+  async submitTextAnswer() {
+    const answer = this.shadowRoot
+      .querySelector('input[type="text"]')
+      .value.trim();
+    this.inputFieldValue = answer;
+    await this.submitAnswer({ answer });
+  }
+
+  async submitMultipleChoiceAnswer() {
     const selectedOption = this.shadowRoot.querySelector(
       'input[name="option"]:checked'
     );
@@ -180,35 +248,71 @@ export default class QuizContent extends HTMLElement {
       alert("Please select an answer.");
       return;
     }
+    this.isQuestionAnswered = true;
+    const answer = selectedOption.id;
+    this.optionSelected = answer;
+    await this.submitAnswer({ answer });
+  }
 
-    this.answered = true;
-    const userAnswer = selectedOption.value;
-    const correctAnswer = this.questions[this.currentQuestionIndex].answer;
+  async submitAnswer(answerData) {
+    try {
+      const response = await fetch(this.answerUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(answerData),
+      });
 
-    if (userAnswer === correctAnswer) {
-      this.score++;
+      const result = await response.json();
+      console.log("Response:", result);
+
+      if (!response.ok) {
+        throw new Error(result.message);
+      }
+
       this.isAnswerCorrect = true;
-    } else {
-      this.isAnswerCorrect = false;
-    }
+      this.score++;
 
-    this.render();
+      if (result.nextURL === undefined) {
+        this.isQuizFinished = true;
+        return;
+      }
+
+      this.questionUrl = result.nextURL;
+    } catch (error) {
+      console.error("Error:", error);
+      this.isAnswerCorrect = false;
+    } finally {
+      this.isQuestionAnswered = true;
+      this.render();
+    }
   }
 
   nextQuestion() {
-    this.currentQuestionIndex++;
-    this.answered = false;
-    this.selectedOptionId = null;
-    if (this.currentQuestionIndex < this.questions.length) {
-      this.render();
-    } else {
-      this.dispatchEvent(
-        new CustomEvent("quiz-completed", {
-          detail: { username: this.username, score: this.score },
-          bubbles: true,
-        })
-      );
-    }
+    this.questionCount++;
+    this.isQuestionAnswered = false;
+    this.inputFieldValue = "";
+    this.optionSelected = null;
+    this.fetchQuestion();
+  }
+
+  failQuiz() {
+    this.dispatchEvent(
+      new CustomEvent("fail-quiz", {
+        detail: { username: this.username, score: this.score },
+        bubbles: true,
+      })
+    );
+  }
+
+  finishQuiz() {
+    this.dispatchEvent(
+      new CustomEvent("finish-quiz", {
+        detail: { username: this.username, score: this.score },
+        bubbles: true,
+      })
+    );
   }
 }
 
