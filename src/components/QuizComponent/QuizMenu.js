@@ -94,7 +94,7 @@ export default class QuizMenu extends HTMLElement {
         <h2 class="menu__title">Welcome to the Quiz!</h2>
         <div class="menu__control-panel">
           <input class="menu__input-field" type="text" id="username" placeholder="Enter your name" required />
-          <button class="menu__button" label="Start Quiz" type="submit" id="startBtn">Start Quiz</button>
+          <button class="menu__button" label="Start Quiz" type="submit" id="startButton">Start Quiz</button>
         </div>
       </form>
     `;

@@ -11,6 +11,7 @@ export default class QuizContent extends HTMLElement {
     this.isQuestionAnswered = false;
     this.isQuizFinished = false;
     this.score = 0;
+    this.endTime = null;
   }
 
   static get observedAttributes() {
@@ -40,25 +41,27 @@ export default class QuizContent extends HTMLElement {
   }
 
   addEventListeners() {
-    if (this.isQuestionAnswered) {
-      this.shadowRoot
-        .getElementById("nextButton")
-        .addEventListener("click", () => {
-          if (this.isQuizFinished) {
-            this.finishQuiz();
-          } else if (this.isAnswerCorrect) {
-            this.nextQuestion();
-          } else {
-            this.failQuiz();
-          }
-        });
-    } else {
-      const submitButton = this.shadowRoot.getElementById("submitButton");
-      const submitHandler =
-        this.alternatives === null
-          ? this.submitTextAnswer.bind(this)
-          : this.submitMultipleChoiceAnswer.bind(this);
+    const nextButton = this.shadowRoot.getElementById("nextButton");
+    const submitButton = this.shadowRoot.getElementById("submitButton");
+
+    if (this.isQuestionAnswered && nextButton) {
+      nextButton.addEventListener(
+        "click",
+        this.handleNextButtonClick.bind(this)
+      );
+    } else if (submitButton) {
+      const submitHandler = this.alternatives
+        ? this.submitMultipleChoiceAnswer.bind(this)
+        : this.submitTextAnswer.bind(this);
       submitButton.addEventListener("click", submitHandler);
+    }
+  }
+
+  handleNextButtonClick() {
+    if (this.isAnswerCorrect) {
+      this.isQuizFinished ? this.finishQuiz() : this.nextQuestion();
+    } else {
+      this.failQuiz();
     }
   }
 
@@ -168,11 +171,7 @@ export default class QuizContent extends HTMLElement {
         : this.getOptionsHtml();
     const buttonHtml = this.isQuestionAnswered
       ? `<button class="quiz__button" id="nextButton">${
-          this.isQuizFinished
-            ? "Finish Quiz"
-            : this.isAnswerCorrect
-            ? "Next Question"
-            : "Finish Quiz"
+          this.isQuizFinished ? "Finish Quiz" : "Next Question"
         }</button>`
       : `<button class="quiz__button" id="submitButton">Answer</button>`;
 
@@ -276,6 +275,7 @@ export default class QuizContent extends HTMLElement {
 
       if (result.nextURL === undefined) {
         this.isQuizFinished = true;
+        this.endTime = new Date();
         return;
       }
 
@@ -283,6 +283,8 @@ export default class QuizContent extends HTMLElement {
     } catch (error) {
       console.error("Error:", error);
       this.isAnswerCorrect = false;
+      this.isQuizFinished = true;
+      this.endTime = new Date();
     } finally {
       this.isQuestionAnswered = true;
       this.render();
@@ -300,7 +302,11 @@ export default class QuizContent extends HTMLElement {
   failQuiz() {
     this.dispatchEvent(
       new CustomEvent("fail-quiz", {
-        detail: { username: this.username, score: this.score },
+        detail: {
+          username: this.username,
+          score: this.score,
+          endTime: this.endTime,
+        },
         bubbles: true,
       })
     );
@@ -309,7 +315,11 @@ export default class QuizContent extends HTMLElement {
   finishQuiz() {
     this.dispatchEvent(
       new CustomEvent("finish-quiz", {
-        detail: { username: this.username, score: this.score },
+        detail: {
+          username: this.username,
+          score: this.score,
+          endTime: this.endTime,
+        },
         bubbles: true,
       })
     );

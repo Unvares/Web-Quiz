@@ -11,6 +11,8 @@ export default class Quiz extends HTMLElement {
       currentView: "menu",
       username: "",
       score: 0,
+      startTime: null,
+      endTime: null,
     };
     this.render();
   }
@@ -41,7 +43,12 @@ export default class Quiz extends HTMLElement {
   createMenuComponent() {
     const menu = new QuizMenu();
     menu.addEventListener("start-quiz", (event) => {
-      this.updateState({ username: event.detail.username, currentView: "content" });
+      this.updateState({
+        username: event.detail.username,
+        currentView: "content",
+        score: 0,
+        startTime: new Date(),
+      });
     });
     return menu;
   }
@@ -49,12 +56,18 @@ export default class Quiz extends HTMLElement {
   createContentComponent() {
     const content = new QuizContent();
     content.setAttribute("username", this.state.username);
-    content.addEventListener("finish-quiz", (event) => {
-      this.updateState({ score: event.detail.score, currentView: "done" });
-    });
-    content.addEventListener("fail-quiz", (event) => {
-      this.updateState({ score: event.detail.score, currentView: "failed" });
-    });
+
+    const handleQuizCompletion = (event, view) => {
+      this.updateState({
+        score: event.detail.score,
+        currentView: view,
+        endTime: event.detail.endTime,
+      });
+    };
+
+    content.addEventListener("finish-quiz", (event) => handleQuizCompletion(event, "done"));
+    content.addEventListener("fail-quiz", (event) => handleQuizCompletion(event, "failed"));
+
     return content;
   }
 
@@ -63,8 +76,16 @@ export default class Quiz extends HTMLElement {
     result.setAttribute("username", this.state.username);
     result.setAttribute("score", this.state.score);
     result.setAttribute("status", status);
+    result.setAttribute(
+      "elapsed-time",
+      this.state.endTime - this.state.startTime
+    );
     result.addEventListener("restart-quiz", () => {
-      this.updateState({ currentView: "content", score: 0 });
+      this.updateState({
+        currentView: "content",
+        score: 0,
+        startTime: new Date(),
+      });
     });
     return result;
   }

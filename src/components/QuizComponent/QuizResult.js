@@ -7,12 +7,16 @@ export default class QuizResult extends HTMLElement {
   }
 
   static get observedAttributes() {
-    return ["username", "score", "status"];
+    return ["username", "score", "status", "elapsed-time"];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
     if (oldValue !== newValue) {
-      this[name] = newValue;
+      // Convert kebab-case to camelCase for JavaScript
+      const propertyName = name.replace(/-([a-z])/g, (match, letter) =>
+        letter.toUpperCase()
+      );
+      this[propertyName] = newValue;
       this.render();
     }
   }
@@ -73,7 +77,7 @@ export default class QuizResult extends HTMLElement {
         <h2>${
           this.status === "done" ? "Congratulations" : "Better luck next time"
         }, ${this.username || "Guest"}!</h2>
-        <p>Your score is: ${this.score || 0}</p>
+        <p>This attempt took you: ${(this.elapsedTime / 1000).toFixed(2)} seconds</p>
         <div class="result__control-panel">
           <button class="result__button" id="tryAgainButton">Try Again</button>
           <button class="result__button" id="scoreboardButton">Scoreboard</button>
