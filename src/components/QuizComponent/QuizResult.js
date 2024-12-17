@@ -1,0 +1,84 @@
+export default class QuizResult extends HTMLElement {
+  shadowRoot = this.attachShadow({ mode: "open" });
+
+  constructor() {
+    super();
+    this.render();
+  }
+
+  static get observedAttributes() {
+    return ["username", "score"];
+  }
+
+  attributeChangedCallback(name, oldValue, newValue) {
+    if (oldValue !== newValue) {
+      this[name] = newValue;
+      this.render();
+    }
+  }
+
+  render() {
+    this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
+    this.shadowRoot
+      .getElementById("tryAgainButton")
+      .addEventListener("click", () => {
+        this.dispatchEvent(new CustomEvent("restart-quiz"));
+      });
+  }
+
+  getStyles() {
+    return `
+      <style>
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        .result {
+          font-size: 1.5rem;
+          text-align: center;
+          color: #424242;
+        }
+
+        .result__control-panel {
+          margin-top: 20px;
+          display: flex;
+          justify-content: center;
+          gap: 10px;
+        }
+
+        .result__button {
+          height: 40px;
+          background-color: #1976d2;
+          color: white;
+          padding: 10px 20px;
+          border: none;
+          border-radius: 4px;
+          font-size: 1rem;
+          cursor: pointer;
+          transition: background-color 0.3s;
+        }
+
+        .result__button:hover {
+          background-color: #1565c0;
+        }
+      </style>
+    `;
+  }
+
+  getTemplate() {
+    return `
+      <div class="result">
+        <h2>Congratulations, ${this.username || "Guest"}!</h2>
+        <p>Your score is: ${this.score || 0}</p>
+        <div class="result__control-panel">
+          <button class="result__button" id="tryAgainButton">Try Again</button>
+          <button class="result__button" id="scoreboardButton">Scoreboard</button>
+        </div>
+      </div>
+    `;
+  }
+}
+
+customElements.define("quiz-result", QuizResult);
