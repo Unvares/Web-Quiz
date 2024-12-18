@@ -1,6 +1,6 @@
 # 📚 Web Quiz
 
-For visualized instructions on how to use the app, go [here](INSTRUCTIONS.md)
+For visualized instructions on how to use the app, go [here](docs/INSTRUCTIONS.md)
 
 ## 📝 Overview
 
