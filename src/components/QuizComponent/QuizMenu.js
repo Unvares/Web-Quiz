@@ -81,7 +81,7 @@ export default class QuizMenu extends HTMLElement {
           transition: background-color 0.3s;
         }
 
-        .menu__button {
+        .menu__button:hover {
           background-color: #1565c0;
         }
       </style>
