@@ -1,45 +1,45 @@
 export default class AppComponent extends HTMLElement {
-  shadowRoot = this.attachShadow({ mode: "open" });
-  state = { currentView: "quiz" };
+  shadowRoot = this.attachShadow({ mode: 'open' });
+  state = { currentView: 'quiz' };
 
-  constructor() {
+  constructor () {
     super();
     this.render();
     this.addEventListeners();
   }
 
-  render() {
+  render () {
     this.shadowRoot.innerHTML = this.getStyles();
     const appContainer = this.createAppContainer();
     this.shadowRoot.appendChild(appContainer);
   }
 
-  createAppContainer() {
-    const container = document.createElement("div");
-    container.classList.add("app");
+  createAppContainer () {
+    const container = document.createElement('div');
+    container.classList.add('app');
 
-    const header = document.createElement("header-component");
+    const header = document.createElement('header-component');
     container.appendChild(header);
 
-    if (this.state.currentView === "quiz") {
-      const quiz = document.createElement("quiz-component");
+    if (this.state.currentView === 'quiz') {
+      const quiz = document.createElement('quiz-component');
       container.appendChild(quiz);
-    } else if (this.state.currentView === "scoreboard") {
-      const scoreboard = document.createElement("scoreboard-component");
+    } else if (this.state.currentView === 'scoreboard') {
+      const scoreboard = document.createElement('scoreboard-component');
       container.appendChild(scoreboard);
     }
 
     return container;
   }
 
-  addEventListeners() {
-    this.addEventListener("navigate-to", (event) => {
+  addEventListeners () {
+    this.addEventListener('navigate-to', (event) => {
       this.state.currentView = event.detail.view;
       this.render();
     });
   }
 
-  getStyles() {
+  getStyles () {
     return `
       <style>
         .app {
@@ -72,4 +72,4 @@ export default class AppComponent extends HTMLElement {
   }
 }
 
-customElements.define("app-component", AppComponent);
+customElements.define('app-component', AppComponent);

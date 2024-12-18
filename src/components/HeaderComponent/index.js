@@ -1,46 +1,46 @@
 export default class HeaderComponent extends HTMLElement {
-  shadowRoot = this.attachShadow({ mode: "open" });
+  shadowRoot = this.attachShadow({ mode: 'open' });
 
-  constructor() {
+  constructor () {
     super();
     this.render();
     this.addEventListeners();
   }
 
-  render() {
+  render () {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
   }
 
-  addEventListeners() {
-    const quizButton = this.shadowRoot.getElementById("quizButton");
-    const scoreboardButton = this.shadowRoot.getElementById("scoreboardButton");
+  addEventListeners () {
+    const quizButton = this.shadowRoot.getElementById('quizButton');
+    const scoreboardButton = this.shadowRoot.getElementById('scoreboardButton');
 
     if (quizButton) {
-      quizButton.addEventListener("click", () => {
+      quizButton.addEventListener('click', () => {
         this.dispatchEvent(
-          new CustomEvent("navigate-to", {
-            detail: { view: "quiz" },
+          new CustomEvent('navigate-to', {
+            detail: { view: 'quiz' },
             bubbles: true,
-            composed: true,
+            composed: true
           })
         );
       });
     }
 
     if (scoreboardButton) {
-      scoreboardButton.addEventListener("click", () => {
+      scoreboardButton.addEventListener('click', () => {
         this.dispatchEvent(
-          new CustomEvent("navigate-to", {
-            detail: { view: "scoreboard" },
+          new CustomEvent('navigate-to', {
+            detail: { view: 'scoreboard' },
             bubbles: true,
-            composed: true,
+            composed: true
           })
         );
       });
     }
   }
 
-  getTemplate() {
+  getTemplate () {
     return `
       <header class="header">
         <h1 class="header__title">Quiz App</h1>
@@ -58,7 +58,7 @@ export default class HeaderComponent extends HTMLElement {
     `;
   }
 
-  getStyles() {
+  getStyles () {
     return `
       <style>
         :host {
@@ -138,4 +138,4 @@ export default class HeaderComponent extends HTMLElement {
   }
 }
 
-customElements.define("header-component", HeaderComponent);
+customElements.define('header-component', HeaderComponent);

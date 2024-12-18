@@ -1,4 +1,4 @@
-import "./AppComponent";
-import "./HeaderComponent";
-import "./QuizComponent";
-import "./ScoreboardComponent";
+import './AppComponent';
+import './HeaderComponent';
+import './QuizComponent';
+import './ScoreboardComponent';

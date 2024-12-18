@@ -1,32 +1,32 @@
 export default class QuizMenu extends HTMLElement {
-  shadowRoot = this.attachShadow({ mode: "open" });
+  shadowRoot = this.attachShadow({ mode: 'open' });
 
-  constructor() {
+  constructor () {
     super();
     this.render();
     this.handleKeyDown = this.handleKeyDown.bind(this);
   }
 
-  connectedCallback() {
-    window.addEventListener("keydown", this.handleKeyDown);
+  connectedCallback () {
+    window.addEventListener('keydown', this.handleKeyDown);
   }
 
-  disconnectedCallback() {
-    window.removeEventListener("keydown", this.handleKeyDown);
+  disconnectedCallback () {
+    window.removeEventListener('keydown', this.handleKeyDown);
   }
 
-  render() {
+  render () {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
 
     this.shadowRoot
-      .querySelector(".menu")
-      .addEventListener("submit", (event) => {
+      .querySelector('.menu')
+      .addEventListener('submit', (event) => {
         event.preventDefault();
         this.startQuiz();
       });
   }
 
-  handleKeyDown(event) {
+  handleKeyDown (event) {
     const inputField = this.shadowRoot.querySelector('input[type="text"]');
     if (
       inputField &&
@@ -40,11 +40,11 @@ export default class QuizMenu extends HTMLElement {
     }
   }
 
-  isModifierKeyPressed(event) {
+  isModifierKeyPressed (event) {
     return event.ctrlKey || event.altKey || event.metaKey;
   }
 
-  getStyles() {
+  getStyles () {
     return `
       <style>
         * {
@@ -115,7 +115,7 @@ export default class QuizMenu extends HTMLElement {
     `;
   }
 
-  getTemplate() {
+  getTemplate () {
     return `
       <form class="menu">
         <h2 class="menu__title">Welcome to the Quiz!</h2>
@@ -127,16 +127,16 @@ export default class QuizMenu extends HTMLElement {
     `;
   }
 
-  startQuiz() {
-    const username = this.shadowRoot.getElementById("username").value.trim();
+  startQuiz () {
+    const username = this.shadowRoot.getElementById('username').value.trim();
     if (username) {
       this.dispatchEvent(
-        new CustomEvent("start-quiz", { detail: { username }, bubbles: true })
+        new CustomEvent('start-quiz', { detail: { username }, bubbles: true })
       );
     } else {
-      alert("Please enter a valid username.");
+      alert('Please enter a valid username.');
     }
   }
 }
 
-customElements.define("quiz-menu", QuizMenu);
+customElements.define('quiz-menu', QuizMenu);

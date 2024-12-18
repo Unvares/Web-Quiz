@@ -1,35 +1,35 @@
 export default class QuizResult extends HTMLElement {
-  shadowRoot = this.attachShadow({ mode: "open" });
+  shadowRoot = this.attachShadow({ mode: 'open' });
 
-  static get observedAttributes() {
-    return ["username", "status", "elapsed-time", "result-message"];
+  static get observedAttributes () {
+    return ['username', 'status', 'elapsed-time', 'result-message'];
   }
 
-  constructor() {
+  constructor () {
     super();
     this.render();
     this.addEventListeners();
     this.handleKeyDown = this.handleKeyDown.bind(this);
   }
 
-  connectedCallback() {
-    if (this.status === "done" && this.username && this.elapsedTime) {
+  connectedCallback () {
+    if (this.status === 'done' && this.username && this.elapsedTime) {
       this.updateLocalStorage();
     }
-    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener('keydown', this.handleKeyDown);
   }
 
-  disconnectedCallback() {
-    window.removeEventListener("keydown", this.handleKeyDown);
+  disconnectedCallback () {
+    window.removeEventListener('keydown', this.handleKeyDown);
   }
 
-  handleKeyDown(event) {
-    if (event.key === "r") {
-      this.dispatchEvent(new CustomEvent("restart-quiz"));
+  handleKeyDown (event) {
+    if (event.key === 'r') {
+      this.dispatchEvent(new CustomEvent('restart-quiz'));
     }
   }
 
-  attributeChangedCallback(name, oldValue, newValue) {
+  attributeChangedCallback (name, oldValue, newValue) {
     if (oldValue !== newValue) {
       // Convert kebab-case to camelCase for JavaScript
       const propertyName = name.replace(/-([a-z])/g, (match, letter) =>
@@ -41,36 +41,36 @@ export default class QuizResult extends HTMLElement {
     }
   }
 
-  updateLocalStorage() {
-    const scores = JSON.parse(localStorage.getItem("quizScores")) || [];
+  updateLocalStorage () {
+    const scores = JSON.parse(localStorage.getItem('quizScores')) || [];
     scores.push({ name: this.username, time: this.elapsedTime / 1000 });
-    localStorage.setItem("quizScores", JSON.stringify(scores));
+    localStorage.setItem('quizScores', JSON.stringify(scores));
   }
 
-  render() {
+  render () {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
   }
 
-  addEventListeners() {
+  addEventListeners () {
     this.shadowRoot
-      .getElementById("tryAgainButton")
-      .addEventListener("click", () => {
-        this.dispatchEvent(new CustomEvent("restart-quiz"));
+      .getElementById('tryAgainButton')
+      .addEventListener('click', () => {
+        this.dispatchEvent(new CustomEvent('restart-quiz'));
       });
     this.shadowRoot
-      .getElementById("scoreboardButton")
-      .addEventListener("click", () => {
+      .getElementById('scoreboardButton')
+      .addEventListener('click', () => {
         this.dispatchEvent(
-          new CustomEvent("navigate-to", {
-            detail: { view: "scoreboard" },
+          new CustomEvent('navigate-to', {
+            detail: { view: 'scoreboard' },
             bubbles: true,
-            composed: true,
+            composed: true
           })
         );
       });
   }
 
-  getStyles() {
+  getStyles () {
     return `
       <style>
         * {
@@ -115,12 +115,12 @@ export default class QuizResult extends HTMLElement {
     `;
   }
 
-  getTemplate() {
+  getTemplate () {
     return `
       <div class="result">
         <h2>${
-          this.status === "done" ? "Congratulations" : "Better luck next time"
-        }, ${this.username || "Guest"}!</h2>
+          this.status === 'done' ? 'Congratulations' : 'Better luck next time'
+        }, ${this.username || 'Guest'}!</h2>
         <p class="result__paragraph">${this.resultMessage}</p>
         <p class="result__paragraph">It took you ${(
           this.elapsedTime / 1000
@@ -134,4 +134,4 @@ export default class QuizResult extends HTMLElement {
   }
 }
 
-customElements.define("quiz-result", QuizResult);
+customElements.define('quiz-result', QuizResult);

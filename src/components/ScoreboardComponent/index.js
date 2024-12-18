@@ -1,23 +1,23 @@
 export default class ScoreBoard extends HTMLElement {
-  shadowRoot = this.attachShadow({ mode: "open" });
+  shadowRoot = this.attachShadow({ mode: 'open' });
 
-  constructor() {
+  constructor () {
     super();
     this.render();
   }
 
-  render() {
+  render () {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
     this.populateScoreBoard();
   }
 
-  populateScoreBoard() {
+  populateScoreBoard () {
     const scores = this.getScoresFromLocalStorage();
     const sortedScores = this.sortScores(scores);
-    const scoreTableBody = this.shadowRoot.getElementById("score-table-body");
+    const scoreTableBody = this.shadowRoot.getElementById('score-table-body');
 
     sortedScores.forEach((score, index) => {
-      const tableRow = document.createElement("tr");
+      const tableRow = document.createElement('tr');
       tableRow.innerHTML = `
         <td>${index + 1}</td>
         <td>${score.name}</td>
@@ -27,15 +27,15 @@ export default class ScoreBoard extends HTMLElement {
     });
   }
 
-  getScoresFromLocalStorage() {
-    return JSON.parse(localStorage.getItem("quizScores")) || [];
+  getScoresFromLocalStorage () {
+    return JSON.parse(localStorage.getItem('quizScores')) || [];
   }
 
-  sortScores(scores) {
+  sortScores (scores) {
     return scores.sort((a, b) => a.time - b.time);
   }
 
-  getTemplate() {
+  getTemplate () {
     return `
       <div class="scoreboard">
         <h2 class="scoreboard__title">Scoreboard</h2>
@@ -56,7 +56,7 @@ export default class ScoreBoard extends HTMLElement {
     `;
   }
 
-  getStyles() {
+  getStyles () {
     return `
       <style>
         * {
@@ -146,4 +146,4 @@ export default class ScoreBoard extends HTMLElement {
   }
 }
 
-customElements.define("scoreboard-component", ScoreBoard);
+customElements.define('scoreboard-component', ScoreBoard);
