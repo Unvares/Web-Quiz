@@ -14,6 +14,7 @@ export default class QuizContent extends HTMLElement {
     this.timeLeft = 10;
     this.timeInterval = null;
     this.globalEndTime = null;
+    this.resultMessage = "";
   }
 
   static get observedAttributes() {
@@ -312,6 +313,7 @@ export default class QuizContent extends HTMLElement {
 
       if (result.nextURL === undefined) {
         this.isQuizFinished = true;
+        this.resultMessage = result.message;
         return;
       }
 
@@ -359,6 +361,7 @@ export default class QuizContent extends HTMLElement {
           username: this.username,
           score: this.score,
           endTime: this.globalEndTime || new Date(),
+          resultMessage: this.resultMessage,
         },
         bubbles: true,
       })

@@ -10,9 +10,9 @@ export default class Quiz extends HTMLElement {
     this.state = {
       currentView: "menu",
       username: "",
-      score: 0,
       startTime: null,
       endTime: null,
+      resultMessage: "",
     };
     this.render();
   }
@@ -46,7 +46,6 @@ export default class Quiz extends HTMLElement {
       this.updateState({
         username: event.detail.username,
         currentView: "content",
-        score: 0,
         startTime: new Date(),
       });
     });
@@ -58,15 +57,22 @@ export default class Quiz extends HTMLElement {
     content.setAttribute("username", this.state.username);
 
     const handleQuizCompletion = (event, view) => {
-      this.updateState({
-        score: event.detail.score,
+      const newState = {
         currentView: view,
         endTime: event.detail.endTime,
-      });
+      };
+      if (view === "done") {
+        newState.resultMessage = event.detail.resultMessage;
+      }
+      this.updateState(newState);
     };
 
-    content.addEventListener("finish-quiz", (event) => handleQuizCompletion(event, "done"));
-    content.addEventListener("fail-quiz", (event) => handleQuizCompletion(event, "failed"));
+    content.addEventListener("finish-quiz", (event) =>
+      handleQuizCompletion(event, "done")
+    );
+    content.addEventListener("fail-quiz", (event) =>
+      handleQuizCompletion(event, "failed")
+    );
 
     return content;
   }
@@ -74,16 +80,15 @@ export default class Quiz extends HTMLElement {
   createResultComponent(status) {
     const result = new QuizResult();
     result.setAttribute("username", this.state.username);
-    result.setAttribute("score", this.state.score);
     result.setAttribute("status", status);
     result.setAttribute(
       "elapsed-time",
       this.state.endTime - this.state.startTime
     );
+    result.setAttribute("result-message", this.state.resultMessage);
     result.addEventListener("restart-quiz", () => {
       this.updateState({
         currentView: "content",
-        score: 0,
         startTime: new Date(),
       });
     });
@@ -108,6 +113,14 @@ export default class Quiz extends HTMLElement {
           margin: 0;
           padding: 0;
           box-sizing: border-box;
+        }
+
+        :host {
+          display: flex;
+          flex-flow: column nowrap;
+          align-items: stretch;
+          justify-content: center;
+          flex-grow: 1;
         }
 
         .quiz-container {

@@ -4,10 +4,17 @@ export default class QuizResult extends HTMLElement {
   constructor() {
     super();
     this.render();
+    this.addEventListeners();
+  }
+
+  connectedCallback() {
+    if (this.status === "done" && this.username && this.elapsedTime) {
+      this.updateLocalStorage();
+    }
   }
 
   static get observedAttributes() {
-    return ["username", "score", "status", "elapsed-time"];
+    return ["username", "status", "elapsed-time", "result-message"];
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
@@ -18,15 +25,36 @@ export default class QuizResult extends HTMLElement {
       );
       this[propertyName] = newValue;
       this.render();
+      this.addEventListeners();
     }
+  }
+
+  updateLocalStorage() {
+    const scores = JSON.parse(localStorage.getItem("quizScores")) || [];
+    scores.push({ name: this.username, time: this.elapsedTime / 1000 });
+    localStorage.setItem("quizScores", JSON.stringify(scores));
   }
 
   render() {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
+  }
+
+  addEventListeners() {
     this.shadowRoot
       .getElementById("tryAgainButton")
       .addEventListener("click", () => {
         this.dispatchEvent(new CustomEvent("restart-quiz"));
+      });
+    this.shadowRoot
+      .getElementById("scoreboardButton")
+      .addEventListener("click", () => {
+        this.dispatchEvent(
+          new CustomEvent("navigate-to", {
+            detail: { view: "scoreboard" },
+            bubbles: true,
+            composed: true,
+          })
+        );
       });
   }
 
@@ -43,6 +71,10 @@ export default class QuizResult extends HTMLElement {
           font-size: 1.5rem;
           text-align: center;
           color: #424242;
+        }
+
+        .result__paragraph {
+          margin-top: 8px;
         }
 
         .result__control-panel {
@@ -77,7 +109,10 @@ export default class QuizResult extends HTMLElement {
         <h2>${
           this.status === "done" ? "Congratulations" : "Better luck next time"
         }, ${this.username || "Guest"}!</h2>
-        <p>This attempt took you: ${(this.elapsedTime / 1000).toFixed(2)} seconds</p>
+        <p class="result__paragraph">${this.resultMessage}</p>
+        <p class="result__paragraph">It took you ${(
+          this.elapsedTime / 1000
+        ).toFixed(3)} seconds</p>
         <div class="result__control-panel">
           <button class="result__button" id="tryAgainButton">Try Again</button>
           <button class="result__button" id="scoreboardButton">Scoreboard</button>
