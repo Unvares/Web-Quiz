@@ -11,7 +11,9 @@ export default class QuizContent extends HTMLElement {
     this.isQuestionAnswered = false;
     this.isQuizFinished = false;
     this.score = 0;
-    this.endTime = null;
+    this.timeLeft = 10;
+    this.timeInterval = null;
+    this.globalEndTime = null;
   }
 
   static get observedAttributes() {
@@ -20,49 +22,13 @@ export default class QuizContent extends HTMLElement {
 
   connectedCallback() {
     this.fetchQuestion();
-  }
-
-  async fetchQuestion() {
-    try {
-      const response = await fetch(this.questionUrl);
-      const questionObject = await response.json();
-      this.question = questionObject.question;
-      this.alternatives = questionObject.alternatives || null;
-      this.answerUrl = questionObject.nextURL;
-      this.render();
-    } catch (error) {
-      console.error("Failed to fetch question:", error);
-    }
+    this.startTimer();
   }
 
   render() {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
     this.addEventListeners();
-  }
-
-  addEventListeners() {
-    const nextButton = this.shadowRoot.getElementById("nextButton");
-    const submitButton = this.shadowRoot.getElementById("submitButton");
-
-    if (this.isQuestionAnswered && nextButton) {
-      nextButton.addEventListener(
-        "click",
-        this.handleNextButtonClick.bind(this)
-      );
-    } else if (submitButton) {
-      const submitHandler = this.alternatives
-        ? this.submitMultipleChoiceAnswer.bind(this)
-        : this.submitTextAnswer.bind(this);
-      submitButton.addEventListener("click", submitHandler);
-    }
-  }
-
-  handleNextButtonClick() {
-    if (this.isAnswerCorrect) {
-      this.isQuizFinished ? this.finishQuiz() : this.nextQuestion();
-    } else {
-      this.failQuiz();
-    }
+    this.updateTimerDisplay();
   }
 
   getStyles() {
@@ -76,11 +42,15 @@ export default class QuizContent extends HTMLElement {
 
         :host {
           display: flex;
-          flex-direction: column;
+          flex-flow: column nowrap;
           align-items: stretch;
           justify-content: flex-start;
           border-radius: 8px;
           gap: 16px;
+        }
+
+        .quiz__timer {
+          text-align: center;
         }
 
         .quiz__title {
@@ -176,6 +146,7 @@ export default class QuizContent extends HTMLElement {
       : `<button class="quiz__button" id="submitButton">Answer</button>`;
 
     return `
+      <p id="timer" class="quiz__timer">${this.timeLeft}s</p>
       <h3 class="quiz__title">Question ${this.questionCount}</h3>
       <hr class="quiz__divider" />
       <p class="quiz__question">${this.question}</p>
@@ -201,21 +172,21 @@ export default class QuizContent extends HTMLElement {
     const optionsHtml = Object.entries(this.alternatives)
       .map(
         ([key, value]) => `
-        <label
-          class="quiz__option ${this.getResultClass(key)}"
-          ${this.isQuestionAnswered ? "disabled" : ""}
-        >
-          <input
-            type="radio"
-            name="option"
-            value="${value}"
-            id="${key}"
+          <label
+            class="quiz__option ${this.getResultClass(key)}"
             ${this.isQuestionAnswered ? "disabled" : ""}
-            ${key === this.optionSelected ? "checked" : ""}
-          />
-          ${value}
-        </label>
-      `
+          >
+            <input
+              type="radio"
+              name="option"
+              value="${value}"
+              id="${key}"
+              ${this.isQuestionAnswered ? "disabled" : ""}
+              ${key === this.optionSelected ? "checked" : ""}
+            />
+            ${value}
+          </label>
+        `
       )
       .join("");
     return `<div class="quiz__options">${optionsHtml}</div>`;
@@ -229,6 +200,72 @@ export default class QuizContent extends HTMLElement {
       return "";
     }
     return this.isAnswerCorrect ? "correct" : "incorrect";
+  }
+
+  async fetchQuestion() {
+    try {
+      const response = await fetch(this.questionUrl);
+      const questionObject = await response.json();
+      this.question = questionObject.question;
+      this.alternatives = questionObject.alternatives || null;
+      this.answerUrl = questionObject.nextURL;
+      this.render();
+    } catch (error) {
+      console.error("Failed to fetch question:", error);
+    }
+  }
+
+  addEventListeners() {
+    const nextButton = this.shadowRoot.getElementById("nextButton");
+    const submitButton = this.shadowRoot.getElementById("submitButton");
+
+    if (this.isQuestionAnswered && nextButton) {
+      nextButton.addEventListener(
+        "click",
+        this.handleNextButtonClick.bind(this)
+      );
+    } else if (submitButton) {
+      const submitHandler = this.alternatives
+        ? this.submitMultipleChoiceAnswer.bind(this)
+        : this.submitTextAnswer.bind(this);
+      submitButton.addEventListener("click", submitHandler);
+    }
+  }
+
+  startTimer() {
+    this.timeLeft = 10.0;
+    this.updateTimerDisplay();
+
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+    }
+
+    this.timerInterval = setInterval(() => {
+      this.timeLeft = (this.timeLeft - 0.1).toFixed(1);
+      this.updateTimerDisplay();
+
+      if (this.timeLeft <= 0) {
+        clearInterval(this.timerInterval);
+        this.failQuiz();
+      }
+    }, 100);
+  }
+
+  updateTimerDisplay() {
+    const timerElement = this.shadowRoot.getElementById("timer");
+    if (timerElement) {
+      timerElement.textContent = `${this.timeLeft}s`;
+      timerElement.style.color =
+        this.timeLeft <= 3 ? "red" : this.timeLeft <= 5 ? "orange" : "green";
+    }
+  }
+
+  handleNextButtonClick() {
+    if (this.isAnswerCorrect) {
+      this.isQuizFinished ? this.finishQuiz() : this.nextQuestion();
+    } else {
+      this.failQuiz();
+    }
   }
 
   async submitTextAnswer() {
@@ -275,7 +312,6 @@ export default class QuizContent extends HTMLElement {
 
       if (result.nextURL === undefined) {
         this.isQuizFinished = true;
-        this.endTime = new Date();
         return;
       }
 
@@ -284,9 +320,12 @@ export default class QuizContent extends HTMLElement {
       console.error("Error:", error);
       this.isAnswerCorrect = false;
       this.isQuizFinished = true;
-      this.endTime = new Date();
     } finally {
       this.isQuestionAnswered = true;
+      if (this.isQuizFinished) {
+        this.globalEndTime = new Date();
+        clearInterval(this.timerInterval);
+      }
       this.render();
     }
   }
@@ -296,6 +335,7 @@ export default class QuizContent extends HTMLElement {
     this.isQuestionAnswered = false;
     this.inputFieldValue = "";
     this.optionSelected = null;
+    this.startTimer();
     this.fetchQuestion();
   }
 
@@ -305,7 +345,7 @@ export default class QuizContent extends HTMLElement {
         detail: {
           username: this.username,
           score: this.score,
-          endTime: this.endTime,
+          endTime: this.globalEndTime || new Date(),
         },
         bubbles: true,
       })
@@ -318,7 +358,7 @@ export default class QuizContent extends HTMLElement {
         detail: {
           username: this.username,
           score: this.score,
-          endTime: this.endTime,
+          endTime: this.globalEndTime || new Date(),
         },
         bubbles: true,
       })
