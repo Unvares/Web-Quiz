@@ -2,9 +2,17 @@ import QuizMenu from './QuizMenu';
 import QuizContent from './QuizContent';
 import QuizResult from './QuizResult';
 
+/**
+ * Quiz is a custom HTML element that manages the quiz flow,
+ * including the menu, quiz content, and result views.
+ */
 export default class Quiz extends HTMLElement {
+  /** @private */
   shadowRoot = this.attachShadow({ mode: 'open' });
 
+  /**
+   * Constructs the Quiz component, initializes the state and rendering.
+   */
   constructor () {
     super();
     this.state = {
@@ -17,6 +25,11 @@ export default class Quiz extends HTMLElement {
     this.render();
   }
 
+  /**
+   * Renders the component by setting the inner HTML of the shadow DOM
+   * and appending the appropriate view component.
+   * @private
+   */
   render () {
     this.shadowRoot.innerHTML = this.getStyles();
     const component = this.getComponentForCurrentView();
@@ -25,6 +38,11 @@ export default class Quiz extends HTMLElement {
     this.shadowRoot.appendChild(container);
   }
 
+  /**
+   * Determines the component to render based on the current view state.
+   * @returns {HTMLElement} The component corresponding to the current view.
+   * @private
+   */
   getComponentForCurrentView () {
     switch (this.state.currentView) {
       case 'menu':
@@ -40,6 +58,11 @@ export default class Quiz extends HTMLElement {
     }
   }
 
+  /**
+   * Creates and returns the menu component, setting up event listeners.
+   * @returns {QuizMenu} The menu component.
+   * @private
+   */
   createMenuComponent () {
     const menu = new QuizMenu();
     menu.addEventListener('start-quiz', (event) => {
@@ -52,6 +75,11 @@ export default class Quiz extends HTMLElement {
     return menu;
   }
 
+  /**
+   * Creates and returns the content component, setting up event listeners.
+   * @returns {QuizContent} The content component.
+   * @private
+   */
   createContentComponent () {
     const content = new QuizContent();
     content.setAttribute('username', this.state.username);
@@ -77,6 +105,12 @@ export default class Quiz extends HTMLElement {
     return content;
   }
 
+  /**
+   * Creates and returns the result component, setting up event listeners.
+   * @param {string} status - The status of the quiz ('done' or 'failed').
+   * @returns {QuizResult} The result component.
+   * @private
+   */
   createResultComponent (status) {
     const result = new QuizResult();
     result.setAttribute('username', this.state.username);
@@ -95,17 +129,32 @@ export default class Quiz extends HTMLElement {
     return result;
   }
 
+  /**
+   * Updates the state of the component and re-renders it.
+   * @param {object} newState - The new state to merge with the current state.
+   * @private
+   */
   updateState (newState) {
     this.state = { ...this.state, ...newState };
     this.render();
   }
 
+  /**
+   * Creates and returns the container element for the quiz component.
+   * @returns {HTMLElement} The container element.
+   * @private
+   */
   createContainer () {
     const container = document.createElement('div');
     container.classList.add('quiz-container');
     return container;
   }
 
+  /**
+   * Returns the CSS styles for the quiz component.
+   * @returns {string} The CSS styles string.
+   * @private
+   */
   getStyles () {
     return `
       <style>

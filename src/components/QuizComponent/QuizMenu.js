@@ -1,20 +1,43 @@
+/**
+ * QuizMenu is a custom HTML element that represents the menu
+ * for starting a quiz. It includes an input field for the username
+ * and a button to start the quiz.
+ */
 export default class QuizMenu extends HTMLElement {
+  /** @private */
   shadowRoot = this.attachShadow({ mode: 'open' });
 
+  /**
+   * Constructs the QuizMenu component and initializes rendering
+   * and event handlers.
+   */
   constructor () {
     super();
     this.render();
     this.handleKeyDown = this.handleKeyDown.bind(this);
   }
 
+  /**
+   * Called when the element is added to the document.
+   * Sets up a global keydown event listener.
+   */
   connectedCallback () {
     window.addEventListener('keydown', this.handleKeyDown);
   }
 
+  /**
+   * Called when the element is removed from the document.
+   * Cleans up the global keydown event listener.
+   */
   disconnectedCallback () {
     window.removeEventListener('keydown', this.handleKeyDown);
   }
 
+  /**
+   * Renders the component by setting the inner HTML of the shadow DOM
+   * with styles and template, and adds event listeners.
+   * @private
+   */
   render () {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
 
@@ -26,6 +49,12 @@ export default class QuizMenu extends HTMLElement {
       });
   }
 
+  /**
+   * Handles keydown events to focus the input field and append
+   * typed characters if the input field is not focused.
+   * @param {KeyboardEvent} event - The keydown event.
+   * @private
+   */
   handleKeyDown (event) {
     const inputField = this.shadowRoot.querySelector('input[type="text"]');
     if (
@@ -40,10 +69,21 @@ export default class QuizMenu extends HTMLElement {
     }
   }
 
+  /**
+   * Checks if a modifier key (Ctrl, Alt, Meta) is pressed.
+   * @param {KeyboardEvent} event - The keydown event.
+   * @returns {boolean} True if a modifier key is pressed, false otherwise.
+   * @private
+   */
   isModifierKeyPressed (event) {
     return event.ctrlKey || event.altKey || event.metaKey;
   }
 
+  /**
+   * Returns the CSS styles for the quiz menu component.
+   * @returns {string} The CSS styles string.
+   * @private
+   */
   getStyles () {
     return `
       <style>
@@ -115,6 +155,11 @@ export default class QuizMenu extends HTMLElement {
     `;
   }
 
+  /**
+   * Returns the HTML template for the quiz menu component.
+   * @returns {string} The HTML template string.
+   * @private
+   */
   getTemplate () {
     return `
       <form class="menu">
@@ -127,6 +172,11 @@ export default class QuizMenu extends HTMLElement {
     `;
   }
 
+  /**
+   * Starts the quiz by dispatching a custom event with the username
+   * if a valid username is entered.
+   * @private
+   */
   startQuiz () {
     const username = this.shadowRoot.getElementById('username').value.trim();
     if (username) {

@@ -1,8 +1,18 @@
+/**
+ * QuizContent is a custom HTML element that represents the content
+ * of a quiz, including questions, answers, and a timer.
+ */
 export default class QuizContent extends HTMLElement {
+  /** @private */
   questionUrl = 'https://courselab.lnu.se/quiz/question/1';
+  /** @private */
   answerUrl = 'https://courselab.lnu.se/quiz/answer/1';
+  /** @private */
   shadowRoot = this.attachShadow({ mode: 'open' });
 
+  /**
+   * Constructs the QuizContent component, initializes state and event handlers.
+   */
   constructor () {
     super();
     this.questionCount = 1;
@@ -14,10 +24,18 @@ export default class QuizContent extends HTMLElement {
     this.handleEnterKeyDown = this.handleEnterKeyDown.bind(this);
   }
 
+  /**
+   * Specifies the attributes to observe for changes.
+   * @returns {Array} The list of attributes to observe.
+   */
   static get observedAttributes () {
     return ['username'];
   }
 
+  /**
+   * Called when the element is added to the document.
+   * Initializes the quiz by fetching the first question and starting the timer.
+   */
   connectedCallback () {
     this.fetchQuestion();
     this.startTimer();
@@ -25,17 +43,30 @@ export default class QuizContent extends HTMLElement {
     window.addEventListener('keydown', this.handleEnterKeyDown);
   }
 
+  /**
+   * Called when the element is removed from the document.
+   * Cleans up global event listeners.
+   */
   disconnectedCallback () {
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keydown', this.handleEnterKeyDown);
   }
 
+  /**
+   * Renders the component by setting the inner HTML of the shadow DOM.
+   * @private
+   */
   render () {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
     this.addEventListeners();
     this.updateTimerDisplay();
   }
 
+  /**
+   * Returns the CSS styles for the quiz content component.
+   * @returns {string} The CSS styles string.
+   * @private
+   */
   getStyles () {
     return `
       <style>
@@ -146,6 +177,11 @@ export default class QuizContent extends HTMLElement {
     `;
   }
 
+  /**
+   * Returns the HTML template for the quiz content component.
+   * @returns {string} The HTML template string.
+   * @private
+   */
   getTemplate () {
     const answerHtml =
       this.alternatives === null
@@ -169,6 +205,11 @@ export default class QuizContent extends HTMLElement {
     `;
   }
 
+  /**
+   * Returns the HTML for the text input field.
+   * @returns {string} The HTML string for the text input field.
+   * @private
+   */
   getTextInputHtml () {
     return `
       <input
@@ -184,6 +225,11 @@ export default class QuizContent extends HTMLElement {
     `;
   }
 
+  /**
+   * Returns the HTML for the multiple choice options.
+   * @returns {string} The HTML string for the options.
+   * @private
+   */
   getOptionsHtml () {
     const optionsHtml = Object.entries(this.alternatives)
       .map(
@@ -208,6 +254,12 @@ export default class QuizContent extends HTMLElement {
     return `<div class="quiz__options">${optionsHtml}</div>`;
   }
 
+  /**
+   * Determines the CSS class for the result based on the answer correctness.
+   * @param {string} key - The key of the selected option.
+   * @returns {string} The CSS class for the result.
+   * @private
+   */
   getResultClass (key) {
     if (
       !this.isQuestionAnswered ||
@@ -218,6 +270,10 @@ export default class QuizContent extends HTMLElement {
     return this.isAnswerCorrect ? 'correct' : 'incorrect';
   }
 
+  /**
+   * Fetches the current question from the server.
+   * @private
+   */
   async fetchQuestion () {
     try {
       const response = await fetch(this.questionUrl);
@@ -231,6 +287,10 @@ export default class QuizContent extends HTMLElement {
     }
   }
 
+  /**
+   * Adds event listeners to the form for handling submissions.
+   * @private
+   */
   addEventListeners () {
     const formElement = this.shadowRoot.querySelector('.quiz__form');
     formElement.addEventListener('submit', (event) => {
@@ -239,6 +299,11 @@ export default class QuizContent extends HTMLElement {
     });
   }
 
+  /**
+   * Handles the Enter key press event to submit the form.
+   * @param {KeyboardEvent} event - The keyboard event.
+   * @private
+   */
   handleEnterKeyDown (event) {
     if (event.key === 'Enter') {
       event.preventDefault();
@@ -247,6 +312,15 @@ export default class QuizContent extends HTMLElement {
     }
   }
 
+  /**
+   * Handles keydown events for the quiz content component.
+   * This function focuses the input field and appends typed characters
+   * if the input field is not already focused. Additionally, it manages
+   * keydown events for selecting options in multiple-choice questions
+   * when they are present.
+   * @param {KeyboardEvent} event - The keyboard event triggered by user interaction.
+   * @private
+   */
   handleKeyDown (event) {
     const inputField = this.shadowRoot.querySelector('input[type="text"]');
     if (
@@ -277,10 +351,21 @@ export default class QuizContent extends HTMLElement {
     }
   }
 
+  /**
+   * Checks if a modifier key (Ctrl, Alt, Meta) is pressed.
+   * @param {KeyboardEvent} event - The keyboard event.
+   * @returns {boolean} True if a modifier key is pressed, false otherwise.
+   * @private
+   */
   isModifierKeyPressed (event) {
     return event.ctrlKey || event.altKey || event.metaKey;
   }
 
+  /**
+   * Handles the form submission event.
+   * @param {Event} event - The form submission event.
+   * @private
+   */
   handleFormSubmission (event) {
     if (this.isQuestionAnswered) {
       this.isAnswerCorrect ? this.handleCorrectAnswer() : this.failQuiz();
@@ -291,10 +376,18 @@ export default class QuizContent extends HTMLElement {
     }
   }
 
+  /**
+   * Handles the correct answer scenario.
+   * @private
+   */
   handleCorrectAnswer () {
     this.isQuizFinished ? this.finishQuiz() : this.nextQuestion();
   }
 
+  /**
+   * Starts the quiz timer and updates the display.
+   * @private
+   */
   startTimer () {
     this.timeLeft = 10.0;
     this.updateTimerDisplay();
@@ -314,6 +407,10 @@ export default class QuizContent extends HTMLElement {
     }, 100);
   }
 
+  /**
+   * Updates the timer display with the remaining time.
+   * @private
+   */
   updateTimerDisplay () {
     const timerElement = this.shadowRoot.getElementById('timer');
     if (timerElement) {
@@ -323,6 +420,11 @@ export default class QuizContent extends HTMLElement {
     }
   }
 
+  /**
+   * Submits the text answer from the input field.
+   * @param {Event} event - The form submission event.
+   * @private
+   */
   async submitTextAnswer (event) {
     const formData = new FormData(event.target);
     const answer = formData.get('answer').trim();
@@ -330,6 +432,10 @@ export default class QuizContent extends HTMLElement {
     await this.submitAnswer({ answer });
   }
 
+  /**
+   * Submits the selected multiple choice answer.
+   * @private
+   */
   async submitMultipleChoiceAnswer () {
     const selectedOption = this.shadowRoot.querySelector(
       'input[name="option"]:checked'
@@ -345,6 +451,11 @@ export default class QuizContent extends HTMLElement {
     await this.submitAnswer({ answer });
   }
 
+  /**
+   * Submits the answer to the server and processes the response.
+   * @param {object} answerData - The answer data to submit.
+   * @private
+   */
   async submitAnswer (answerData) {
     try {
       const response = await fetch(this.answerUrl, {
@@ -385,6 +496,10 @@ export default class QuizContent extends HTMLElement {
     }
   }
 
+  /**
+   * Proceeds to the next question in the quiz.
+   * @private
+   */
   nextQuestion () {
     this.questionCount++;
     this.isQuestionAnswered = false;
@@ -394,6 +509,10 @@ export default class QuizContent extends HTMLElement {
     this.fetchQuestion();
   }
 
+  /**
+   * Dispatches a custom event indicating the quiz has failed.
+   * @private
+   */
   failQuiz () {
     this.dispatchEvent(
       new CustomEvent('fail-quiz', {
@@ -407,6 +526,10 @@ export default class QuizContent extends HTMLElement {
     );
   }
 
+  /**
+   * Dispatches a custom event indicating the quiz has finished.
+   * @private
+   */
   finishQuiz () {
     this.dispatchEvent(
       new CustomEvent('finish-quiz', {

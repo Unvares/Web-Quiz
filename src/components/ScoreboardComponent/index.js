@@ -1,16 +1,35 @@
+/**
+ * ScoreBoard is a custom HTML element that displays a scoreboard
+ * for a quiz application. It retrieves scores from local storage,
+ * sorts them, and displays them in a table format.
+ */
 export default class ScoreBoard extends HTMLElement {
+  /** @private */
   shadowRoot = this.attachShadow({ mode: 'open' });
 
+  /**
+   * Constructs the ScoreBoard component and initializes rendering.
+   */
   constructor () {
     super();
     this.render();
   }
 
+  /**
+   * Renders the component by setting the inner HTML of the shadow DOM
+   * with styles and template, and populates the scoreboard with data.
+   * @private
+   */
   render () {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
     this.populateScoreBoard();
   }
 
+  /**
+   * Populates the scoreboard with scores retrieved from local storage.
+   * It sorts the scores and appends them to the table body.
+   * @private
+   */
   populateScoreBoard () {
     const scores = this.getScoresFromLocalStorage();
     const sortedScores = this.sortScores(scores);
@@ -27,14 +46,30 @@ export default class ScoreBoard extends HTMLElement {
     });
   }
 
+  /**
+   * Retrieves scores from local storage.
+   * @returns {Array} An array of score objects.
+   * @private
+   */
   getScoresFromLocalStorage () {
     return JSON.parse(localStorage.getItem('quizScores')) || [];
   }
 
+  /**
+   * Sorts an array of scores in ascending order based on time.
+   * @param {Array} scores - The array of score objects to sort.
+   * @returns {Array} The sorted array of score objects.
+   * @private
+   */
   sortScores (scores) {
     return scores.sort((a, b) => a.time - b.time);
   }
 
+  /**
+   * Returns the HTML template for the scoreboard component.
+   * @returns {string} The HTML template string.
+   * @private
+   */
   getTemplate () {
     return `
       <div class="scoreboard">
@@ -56,6 +91,11 @@ export default class ScoreBoard extends HTMLElement {
     `;
   }
 
+  /**
+   * Returns the CSS styles for the scoreboard component.
+   * @returns {string} The CSS styles string.
+   * @private
+   */
   getStyles () {
     return `
       <style>

@@ -1,16 +1,35 @@
+/**
+ * HeaderComponent is a custom HTML element that represents the header
+ * section of the application. It includes navigation buttons for switching
+ * between different views such as the quiz and scoreboard.
+ */
 export default class HeaderComponent extends HTMLElement {
+  /** @private */
   shadowRoot = this.attachShadow({ mode: 'open' });
 
+  /**
+   * Constructs the HeaderComponent, initializes the rendering and event listeners.
+   */
   constructor () {
     super();
     this.render();
     this.addEventListeners();
   }
 
+  /**
+   * Renders the component by setting the inner HTML of the shadow DOM
+   * with styles and template.
+   * @private
+   */
   render () {
     this.shadowRoot.innerHTML = this.getStyles() + this.getTemplate();
   }
 
+  /**
+   * Adds event listeners to the navigation buttons to dispatch custom events
+   * for navigating to different views.
+   * @private
+   */
   addEventListeners () {
     const quizButton = this.shadowRoot.getElementById('quizButton');
     const scoreboardButton = this.shadowRoot.getElementById('scoreboardButton');
@@ -40,6 +59,11 @@ export default class HeaderComponent extends HTMLElement {
     }
   }
 
+  /**
+   * Returns the HTML template for the header component.
+   * @returns {string} The HTML template string.
+   * @private
+   */
   getTemplate () {
     return `
       <header class="header">
@@ -58,6 +82,11 @@ export default class HeaderComponent extends HTMLElement {
     `;
   }
 
+  /**
+   * Returns the CSS styles for the header component.
+   * @returns {string} The CSS styles string.
+   * @private
+   */
   getStyles () {
     return `
       <style>
