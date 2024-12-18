@@ -4,6 +4,15 @@ export default class QuizMenu extends HTMLElement {
   constructor() {
     super();
     this.render();
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+  }
+
+  connectedCallback() {
+    window.addEventListener("keydown", this.handleKeyDown);
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener("keydown", this.handleKeyDown);
   }
 
   render() {
@@ -15,6 +24,24 @@ export default class QuizMenu extends HTMLElement {
         event.preventDefault();
         this.startQuiz();
       });
+  }
+
+  handleKeyDown(event) {
+    const inputField = this.shadowRoot.querySelector('input[type="text"]');
+    if (
+      inputField &&
+      event.key.length === 1 &&
+      !this.isModifierKeyPressed(event) &&
+      document.activeElement !== inputField
+    ) {
+      inputField.focus();
+      inputField.value += event.key;
+      event.preventDefault();
+    }
+  }
+
+  isModifierKeyPressed(event) {
+    return event.ctrlKey || event.altKey || event.metaKey;
   }
 
   getStyles() {
@@ -93,7 +120,7 @@ export default class QuizMenu extends HTMLElement {
       <form class="menu">
         <h2 class="menu__title">Welcome to the Quiz!</h2>
         <div class="menu__control-panel">
-          <input class="menu__input-field" type="text" id="username" placeholder="Enter your name" required />
+          <input class="menu__input-field" type="text" id="username" placeholder="Enter your name" required autofocus />
           <button class="menu__button" label="Start Quiz" type="submit" id="startButton">Start Quiz</button>
         </div>
       </form>

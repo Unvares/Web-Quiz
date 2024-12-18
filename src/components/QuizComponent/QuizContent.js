@@ -6,15 +6,12 @@ export default class QuizContent extends HTMLElement {
   constructor() {
     super();
     this.questionCount = 1;
-    this.inputFieldValue = "";
-    this.optionSelected = null;
+    this.defaultInputFieldValue = "";
     this.isQuestionAnswered = false;
     this.isQuizFinished = false;
-    this.score = 0;
-    this.timeLeft = 10;
-    this.timeInterval = null;
-    this.globalEndTime = null;
     this.resultMessage = "";
+    this.handleKeyDown = this.handleKeyDown.bind(this);
+    this.handleEnterKeyDown = this.handleEnterKeyDown.bind(this);
   }
 
   static get observedAttributes() {
@@ -24,6 +21,13 @@ export default class QuizContent extends HTMLElement {
   connectedCallback() {
     this.fetchQuestion();
     this.startTimer();
+    window.addEventListener("keydown", this.handleKeyDown);
+    window.addEventListener("keydown", this.handleEnterKeyDown);
+  }
+
+  disconnectedCallback() {
+    window.removeEventListener("keydown", this.handleKeyDown);
+    window.removeEventListener("keydown", this.handleEnterKeyDown);
   }
 
   render() {
@@ -65,6 +69,13 @@ export default class QuizContent extends HTMLElement {
           width: 100%;
           height: 2px;
           background-color: #1976d2;
+        }
+
+        .quiz__form {
+          display: flex;
+          flex-flow: column nowrap;
+          align-items: stretch;
+          gap: 16px;
         }
 
         .quiz__question {
@@ -141,18 +152,20 @@ export default class QuizContent extends HTMLElement {
         ? this.getTextInputHtml()
         : this.getOptionsHtml();
     const buttonHtml = this.isQuestionAnswered
-      ? `<button class="quiz__button" id="nextButton">${
+      ? `<button class="quiz__button" type="submit">${
           this.isQuizFinished ? "Finish Quiz" : "Next Question"
         }</button>`
-      : `<button class="quiz__button" id="submitButton">Answer</button>`;
+      : '<button class="quiz__button" type="submit">Answer</button>';
 
     return `
       <p id="timer" class="quiz__timer">${this.timeLeft}s</p>
       <h3 class="quiz__title">Question ${this.questionCount}</h3>
       <hr class="quiz__divider" />
       <p class="quiz__question">${this.question}</p>
-      ${answerHtml}
-      ${buttonHtml}
+      <form class="quiz__form">
+        ${answerHtml}
+        ${buttonHtml}
+      </form>
     `;
   }
 
@@ -163,8 +176,10 @@ export default class QuizContent extends HTMLElement {
         type="text"
         name="answer"
         placeholder="Type your answer here"
-        value="${this.inputFieldValue}"
+        value="${this.defaultInputFieldValue}"
         ${this.isQuestionAnswered ? "disabled" : ""}
+        required
+        autofocus
       />
     `;
   }
@@ -183,7 +198,7 @@ export default class QuizContent extends HTMLElement {
               value="${value}"
               id="${key}"
               ${this.isQuestionAnswered ? "disabled" : ""}
-              ${key === this.optionSelected ? "checked" : ""}
+              ${key === this.selectedOption ? "checked" : ""}
             />
             ${value}
           </label>
@@ -196,7 +211,7 @@ export default class QuizContent extends HTMLElement {
   getResultClass(key) {
     if (
       !this.isQuestionAnswered ||
-      (key !== this.optionSelected && this.alternatives)
+      (key !== this.selectedOption && this.alternatives)
     ) {
       return "";
     }
@@ -217,20 +232,67 @@ export default class QuizContent extends HTMLElement {
   }
 
   addEventListeners() {
-    const nextButton = this.shadowRoot.getElementById("nextButton");
-    const submitButton = this.shadowRoot.getElementById("submitButton");
+    const formElement = this.shadowRoot.querySelector(".quiz__form");
+    formElement.addEventListener("submit", (event) => {
+      event.preventDefault();
+      this.handleFormSubmission(event);
+    });
+  }
 
-    if (this.isQuestionAnswered && nextButton) {
-      nextButton.addEventListener(
-        "click",
-        this.handleNextButtonClick.bind(this)
-      );
-    } else if (submitButton) {
-      const submitHandler = this.alternatives
-        ? this.submitMultipleChoiceAnswer.bind(this)
-        : this.submitTextAnswer.bind(this);
-      submitButton.addEventListener("click", submitHandler);
+  handleEnterKeyDown(event) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const formElement = this.shadowRoot.querySelector(".quiz__form");
+      formElement.dispatchEvent(new Event("submit", { cancelable: true }));
     }
+  }
+
+  handleKeyDown(event) {
+    const inputField = this.shadowRoot.querySelector('input[type="text"]');
+    if (
+      inputField &&
+      event.key.length === 1 &&
+      !this.isModifierKeyPressed(event) &&
+      document.activeElement !== inputField &&
+      !this.isQuestionAnswered
+    ) {
+      inputField.focus();
+      inputField.value += event.key;
+      event.preventDefault();
+    }
+
+    if (this.alternatives && !this.isQuestionAnswered) {
+      const optionIndex = parseInt(event.key, 10);
+      const optionElement = this.shadowRoot.getElementById(`alt${optionIndex}`);
+      if (optionElement) {
+        const previouslyCheckedOption = this.shadowRoot.querySelector(
+          'input[name="option"]:checked'
+        );
+        if (previouslyCheckedOption) {
+          previouslyCheckedOption.checked = false;
+        }
+        optionElement.checked = true;
+        optionElement.click();
+      }
+    }
+  }
+
+  isModifierKeyPressed(event) {
+    return event.ctrlKey || event.altKey || event.metaKey;
+  }
+
+  handleFormSubmission(event) {
+    if (this.isQuestionAnswered) {
+      this.isAnswerCorrect ? this.handleCorrectAnswer() : this.failQuiz();
+    } else {
+      this.alternatives
+        ? this.submitMultipleChoiceAnswer()
+        : this.submitTextAnswer(event);
+    }
+  }
+
+  handleCorrectAnswer() {
+    this.isQuizFinished ? this.finishQuiz() : this.nextQuestion();
   }
 
   startTimer() {
@@ -261,19 +323,10 @@ export default class QuizContent extends HTMLElement {
     }
   }
 
-  handleNextButtonClick() {
-    if (this.isAnswerCorrect) {
-      this.isQuizFinished ? this.finishQuiz() : this.nextQuestion();
-    } else {
-      this.failQuiz();
-    }
-  }
-
-  async submitTextAnswer() {
-    const answer = this.shadowRoot
-      .querySelector('input[type="text"]')
-      .value.trim();
-    this.inputFieldValue = answer;
+  async submitTextAnswer(event) {
+    const formData = new FormData(event.target);
+    const answer = formData.get("answer").trim();
+    this.defaultInputFieldValue = answer;
     await this.submitAnswer({ answer });
   }
 
@@ -281,13 +334,14 @@ export default class QuizContent extends HTMLElement {
     const selectedOption = this.shadowRoot.querySelector(
       'input[name="option"]:checked'
     );
+
     if (!selectedOption) {
-      alert("Please select an answer.");
       return;
     }
+
     this.isQuestionAnswered = true;
     const answer = selectedOption.id;
-    this.optionSelected = answer;
+    this.selectedOption = answer;
     await this.submitAnswer({ answer });
   }
 
@@ -302,7 +356,6 @@ export default class QuizContent extends HTMLElement {
       });
 
       const result = await response.json();
-      console.log("Response:", result);
 
       if (!response.ok) {
         throw new Error(result.message);
@@ -335,8 +388,8 @@ export default class QuizContent extends HTMLElement {
   nextQuestion() {
     this.questionCount++;
     this.isQuestionAnswered = false;
-    this.inputFieldValue = "";
-    this.optionSelected = null;
+    this.defaultInputFieldValue = "";
+    this.selectedOption = null;
     this.startTimer();
     this.fetchQuestion();
   }

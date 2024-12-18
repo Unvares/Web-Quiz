@@ -1,20 +1,32 @@
 export default class QuizResult extends HTMLElement {
   shadowRoot = this.attachShadow({ mode: "open" });
 
+  static get observedAttributes() {
+    return ["username", "status", "elapsed-time", "result-message"];
+  }
+
   constructor() {
     super();
     this.render();
     this.addEventListeners();
+    this.handleKeyDown = this.handleKeyDown.bind(this);
   }
 
   connectedCallback() {
     if (this.status === "done" && this.username && this.elapsedTime) {
       this.updateLocalStorage();
     }
+    window.addEventListener("keydown", this.handleKeyDown);
   }
 
-  static get observedAttributes() {
-    return ["username", "status", "elapsed-time", "result-message"];
+  disconnectedCallback() {
+    window.removeEventListener("keydown", this.handleKeyDown);
+  }
+
+  handleKeyDown(event) {
+    if (event.key === "r") {
+      this.dispatchEvent(new CustomEvent("restart-quiz"));
+    }
   }
 
   attributeChangedCallback(name, oldValue, newValue) {
